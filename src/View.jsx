@@ -1,45 +1,137 @@
-import React, { Suspense, useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls as DreiOrbitControls } from '@react-three/drei';
+import { OrbitControls } from '@react-three/drei';
 import { STLLoader } from 'three-stdlib';
 import * as THREE from 'three';
 import debounce from 'lodash.debounce';
 import ReactPannellum from 'react-pannellum';
-import { OrbitControls } from '@react-three/drei';
-const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget, rotationSpeed = 0.01, panSpeed = 0.5, zoomSpeed = 0.5 }) => {
+import { defineMessages, useIntl } from 'react-intl';
+
+const messages = defineMessages({
+  keyboardControls: {
+    id: '3DBlock.keyboardControls',
+    defaultMessage: 'Keyboard Controls',
+  },
+  rotation: {
+    id: '3DBlock.rotation',
+    defaultMessage: 'Rotation:',
+  },
+  rotationInstructions: {
+    id: '3DBlock.rotationInstructions',
+    defaultMessage: '↑↓←→ - Rotate model',
+  },
+  pan: {
+    id: '3DBlock.pan',
+    defaultMessage: 'Pan:',
+  },
+  panInstructions1: {
+    id: '3DBlock.panInstructions1',
+    defaultMessage: 'W/A/S/D - Pan view',
+  },
+  panInstructions2: {
+    id: '3DBlock.panInstructions2',
+    defaultMessage: 'Shift + Arrow keys - Pan view',
+  },
+  zoom: {
+    id: '3DBlock.zoom',
+    defaultMessage: 'Zoom:',
+  },
+  zoomInstructions1: {
+    id: '3DBlock.zoomInstructions1',
+    defaultMessage: '+ / - - Zoom in/out',
+  },
+  zoomInstructions2: {
+    id: '3DBlock.zoomInstructions2',
+    defaultMessage: 'Page Up/Down - Zoom in/out',
+  },
+  reset: {
+    id: '3DBlock.reset',
+    defaultMessage: 'Reset:',
+  },
+  resetInstructions: {
+    id: '3DBlock.resetInstructions',
+    defaultMessage: 'R or Home - Reset view',
+  },
+  help: {
+    id: '3DBlock.help',
+    defaultMessage: 'Help:',
+  },
+  helpInstructions: {
+    id: '3DBlock.helpInstructions',
+    defaultMessage: 'H - Toggle this help',
+  },
+  focusNote: {
+    id: '3DBlock.focusNote',
+    defaultMessage: 'Note: Click the 3D viewer to focus it, then use keyboard controls',
+  },
+  helpHint: {
+    id: '3DBlock.helpHint',
+    defaultMessage: 'Press H for keyboard controls help',
+  },
+});
+
+const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget }) => {
   const [keys, setKeys] = useState({});
 
   useEffect(() => {
+    let canvas = null;
+    
     const handleKeyDown = (e) => {
-      // Controls only work when canvas has focus
-      const canvas = document.querySelector('canvas');
-      const container = document.querySelector('.container360image');
-      const activeElement = document.activeElement;
-      
-      if (!canvas || (!canvas.contains(activeElement) && activeElement !== canvas && 
-          (!container || !container.contains(activeElement)))) {
+      // Only process if this specific canvas has focus
+      if (!canvas || document.activeElement !== canvas) {
         return;
       }
       
-      setKeys(prev => ({ ...prev, [e.code]: true }));
-      
-      // Prevent default browser behavior for navigation keys
+      // Stop propagation immediately for control keys when canvas is focused
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Equal', 'Minus', 'PageUp', 'PageDown', 'KeyR', 'Home'].includes(e.code)) {
         e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
       }
+      
+      setKeys(prev => ({ ...prev, [e.code]: true }));
     };
 
     const handleKeyUp = (e) => {
+      if (!canvas || document.activeElement !== canvas) {
+        // Always clear keys when canvas loses focus
+        setKeys({});
+        return;
+      }
+      
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Equal', 'Minus', 'PageUp', 'PageDown', 'KeyR', 'Home'].includes(e.code)) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+      }
+      
       setKeys(prev => ({ ...prev, [e.code]: false }));
     };
 
-    // Set up event listeners
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    // Wait for canvas to be available and attach listeners directly to it
+    const checkCanvas = () => {
+      canvas = document.querySelector('canvas');
+      if (canvas) {
+        canvas.addEventListener('keydown', handleKeyDown);
+        canvas.addEventListener('keyup', handleKeyUp);
+        
+        // Clear keys when canvas loses focus
+        canvas.addEventListener('blur', () => {
+          setKeys({});
+        });
+      } else {
+        // Retry if canvas not ready yet
+        setTimeout(checkCanvas, 100);
+      }
+    };
+
+    checkCanvas();
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      if (canvas) {
+        canvas.removeEventListener('keydown', handleKeyDown);
+        canvas.removeEventListener('keyup', handleKeyUp);
+      }
     };
   }, []);
 
@@ -47,6 +139,9 @@ const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget,
     if (!controlsRef.current) return;
 
     const controls = controlsRef.current;
+    const rotationSpeed = 0.02; // Increased from 0.01
+    const panSpeed = 1.0; // Increased from 0.5 
+    const zoomSpeed = 1.0; // Increased from 0.5
 
     // Rotation with arrow keys - rotate around the target
     if (keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight) {
@@ -114,6 +209,8 @@ const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget,
 };
 
 const HelpOverlay = ({ show, onToggle }) => {
+  const intl = useIntl();
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.code === 'KeyH') {
@@ -142,21 +239,21 @@ const HelpOverlay = ({ show, onToggle }) => {
       zIndex: 1000,
       maxWidth: '300px'
     }}>
-      <h3 style={{ margin: '0 0 10px 0' }}>Keyboard Controls</h3>
-      <div><strong>Rotation:</strong></div>
-      <div>↑↓←→ - Rotate model</div>
-      <div><strong>Pan:</strong></div>
-      <div>W/A/S/D - Pan view</div>
-      <div>Shift + Arrow keys - Pan view</div>
-      <div><strong>Zoom:</strong></div>
-      <div>+ / - - Zoom in/out</div>
-      <div>Page Up/Down - Zoom in/out</div>
-      <div><strong>Reset:</strong></div>
-      <div>R or Home - Reset view</div>
-      <div><strong>Help:</strong></div>
-      <div>H - Toggle this help</div>
+      <h3 style={{ margin: '0 0 10px 0' }}>{intl.formatMessage(messages.keyboardControls)}</h3>
+      <div><strong>{intl.formatMessage(messages.rotation)}</strong></div>
+      <div>{intl.formatMessage(messages.rotationInstructions)}</div>
+      <div><strong>{intl.formatMessage(messages.pan)}</strong></div>
+      <div>{intl.formatMessage(messages.panInstructions1)}</div>
+      <div>{intl.formatMessage(messages.panInstructions2)}</div>
+      <div><strong>{intl.formatMessage(messages.zoom)}</strong></div>
+      <div>{intl.formatMessage(messages.zoomInstructions1)}</div>
+      <div>{intl.formatMessage(messages.zoomInstructions2)}</div>
+      <div><strong>{intl.formatMessage(messages.reset)}</strong></div>
+      <div>{intl.formatMessage(messages.resetInstructions)}</div>
+      <div><strong>{intl.formatMessage(messages.help)}</strong></div>
+      <div>{intl.formatMessage(messages.helpInstructions)}</div>
       <div style={{ marginTop: '10px', fontSize: '12px', opacity: '0.8' }}>
-        Note: Click the 3D viewer first to activate controls
+        {intl.formatMessage(messages.focusNote)}
       </div>
     </div>
   );
@@ -167,10 +264,6 @@ const STLViewer = ({
   onCameraChange,
   savedCameraPosition,
   isEditMode,
-  rotationSpeed,
-  panSpeed,
-  zoomSpeed,
-  mouseSpeed,
 }) => {
   const [geometry, setGeometry] = useState(null);
   const { camera, gl } = useThree();
@@ -229,9 +322,9 @@ const STLViewer = ({
         target={new THREE.Vector3(0, 0, 0)}
         enableDamping={true}
         dampingFactor={0.2}
-        rotateSpeed={mouseSpeed}
-        panSpeed={mouseSpeed}
-        zoomSpeed={mouseSpeed}
+        rotateSpeed={1.2}
+        panSpeed={1.2}
+        zoomSpeed={1.2}
         onEnd={(e) => {
           if (isEditMode && onCameraChange) {
             const { position } = e.target.object;
@@ -248,9 +341,6 @@ const STLViewer = ({
         camera={camera}
         initialPosition={initialPosition}
         initialTarget={initialTarget}
-        rotationSpeed={rotationSpeed}
-        panSpeed={panSpeed}
-        zoomSpeed={zoomSpeed}
       />
       <mesh geometry={geometry} frustumCulled={false}>
         <meshStandardMaterial attach="material" color={0x808080} />
@@ -260,20 +350,12 @@ const STLViewer = ({
 };
 
 const View = (props) => {
-  const { 
-    file, 
-    savedCameraPosition, 
-    onCameraChange, 
-    isEditMode,
-    rotationSpeed = 0.01,
-    panSpeed = 0.5,
-    zoomSpeed = 0.5,
-    mouseSpeed = 1.0
-  } = props?.data;
+  const { file, savedCameraPosition, onCameraChange, isEditMode } = props?.data;
   const [blobUrl, setBlobUrl] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const pannellumRef = useRef(null);
+  const intl = useIntl();
 
   useEffect(() => {
     if (file?.data) {
@@ -330,7 +412,7 @@ const View = (props) => {
             fontSize: '12px'
           }}
         >
-          Press H for keyboard controls help
+          {intl.formatMessage(messages.helpHint)}
         </div>
         <Canvas
           camera={{ position: [0, 0, -100], fov: 50 }}
@@ -339,12 +421,18 @@ const View = (props) => {
           height="auto"
           linear
           tabIndex={0}
-          style={{ outline: 'none' }}
+          style={{ 
+            outline: 'none',
+            border: 'none'
+          }}
           onCreated={({ gl }) => {
             gl.setSize(window.innerWidth, window.innerHeight);
             gl.forceContextRestore();
-            gl.domElement.setAttribute('aria-label', '3D Model Viewer - Press H for keyboard controls');
+            gl.domElement.setAttribute('aria-label', '3D Model Viewer - Click to focus, then use keyboard controls');
             gl.domElement.setAttribute('role', 'application');
+            gl.domElement.tabIndex = 0;
+            gl.domElement.style.outline = 'none';
+            gl.domElement.style.border = 'none';
           }}
         >
           <Suspense fallback={<p>Loading...</p>}>
@@ -355,10 +443,6 @@ const View = (props) => {
               onCameraChange={onCameraChange}
               savedCameraPosition={savedCameraPosition}
               isEditMode={isEditMode}
-              rotationSpeed={rotationSpeed}
-              panSpeed={panSpeed}
-              zoomSpeed={zoomSpeed}
-              mouseSpeed={mouseSpeed}
             />
           </Suspense>
         </Canvas>
