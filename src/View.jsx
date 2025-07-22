@@ -62,7 +62,8 @@ const messages = defineMessages({
   },
   focusNote: {
     id: '3DBlock.focusNote',
-    defaultMessage: 'Note: Click the 3D viewer to focus it, then use keyboard controls',
+    defaultMessage:
+      'Note: Click the 3D viewer to focus it, then use keyboard controls',
   },
   helpHint: {
     id: '3DBlock.helpHint',
@@ -70,26 +71,48 @@ const messages = defineMessages({
   },
 });
 
-const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget }) => {
+const KeyboardControls = ({
+  controlsRef,
+  camera,
+  initialPosition,
+  initialTarget,
+}) => {
   const [keys, setKeys] = useState({});
 
   useEffect(() => {
     let canvas = null;
-    
+
     const handleKeyDown = (e) => {
       // Only process if this specific canvas has focus
       if (!canvas || document.activeElement !== canvas) {
         return;
       }
-      
+
       // Stop propagation immediately for control keys when canvas is focused
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Equal', 'Minus', 'PageUp', 'PageDown', 'KeyR', 'Home'].includes(e.code)) {
+      if (
+        [
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+          'KeyW',
+          'KeyA',
+          'KeyS',
+          'KeyD',
+          'Equal',
+          'Minus',
+          'PageUp',
+          'PageDown',
+          'KeyR',
+          'Home',
+        ].includes(e.code)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
       }
-      
-      setKeys(prev => ({ ...prev, [e.code]: true }));
+
+      setKeys((prev) => ({ ...prev, [e.code]: true }));
     };
 
     const handleKeyUp = (e) => {
@@ -98,14 +121,31 @@ const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget 
         setKeys({});
         return;
       }
-      
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'Equal', 'Minus', 'PageUp', 'PageDown', 'KeyR', 'Home'].includes(e.code)) {
+
+      if (
+        [
+          'ArrowUp',
+          'ArrowDown',
+          'ArrowLeft',
+          'ArrowRight',
+          'KeyW',
+          'KeyA',
+          'KeyS',
+          'KeyD',
+          'Equal',
+          'Minus',
+          'PageUp',
+          'PageDown',
+          'KeyR',
+          'Home',
+        ].includes(e.code)
+      ) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
       }
-      
-      setKeys(prev => ({ ...prev, [e.code]: false }));
+
+      setKeys((prev) => ({ ...prev, [e.code]: false }));
     };
 
     // Wait for canvas to be available and attach listeners directly to it
@@ -114,7 +154,7 @@ const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget 
       if (canvas) {
         canvas.addEventListener('keydown', handleKeyDown);
         canvas.addEventListener('keyup', handleKeyUp);
-        
+
         // Clear keys when canvas loses focus
         canvas.addEventListener('blur', () => {
           setKeys({});
@@ -140,14 +180,14 @@ const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget 
 
     const controls = controlsRef.current;
     const rotationSpeed = 0.02; // Increased from 0.01
-    const panSpeed = 1.0; // Increased from 0.5 
+    const panSpeed = 1.0; // Increased from 0.5
     const zoomSpeed = 1.0; // Increased from 0.5
 
     // Rotation with arrow keys - rotate around the target
     if (keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight) {
       const spherical = new THREE.Spherical();
       const offset = new THREE.Vector3();
-      
+
       offset.copy(camera.position).sub(controls.target);
       spherical.setFromVector3(offset);
 
@@ -199,7 +239,7 @@ const KeyboardControls = ({ controlsRef, camera, initialPosition, initialTarget 
         camera.position.copy(initialPosition);
         controls.target.copy(initialTarget);
       }
-      setKeys(prev => ({ ...prev, KeyR: false, Home: false })); // Prevent continuous reset
+      setKeys((prev) => ({ ...prev, KeyR: false, Home: false })); // Prevent continuous reset
     }
 
     controls.update();
@@ -226,31 +266,45 @@ const HelpOverlay = ({ show, onToggle }) => {
   if (!show) return null;
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: '10px',
-      left: '10px',
-      background: 'rgba(0,0,0,0.8)',
-      color: 'white',
-      padding: '15px',
-      borderRadius: '5px',
-      fontSize: '14px',
-      fontFamily: 'monospace',
-      zIndex: 1000,
-      maxWidth: '300px'
-    }}>
-      <h3 style={{ margin: '0 0 10px 0' }}>{intl.formatMessage(messages.keyboardControls)}</h3>
-      <div><strong>{intl.formatMessage(messages.rotation)}</strong></div>
+    <div
+      style={{
+        position: 'absolute',
+        top: '10px',
+        left: '10px',
+        background: 'rgba(0,0,0,0.8)',
+        color: 'white',
+        padding: '15px',
+        borderRadius: '5px',
+        fontSize: '14px',
+        fontFamily: 'monospace',
+        zIndex: 1000,
+        maxWidth: '300px',
+      }}
+    >
+      <h3 style={{ margin: '0 0 10px 0' }}>
+        {intl.formatMessage(messages.keyboardControls)}
+      </h3>
+      <div>
+        <strong>{intl.formatMessage(messages.rotation)}</strong>
+      </div>
       <div>{intl.formatMessage(messages.rotationInstructions)}</div>
-      <div><strong>{intl.formatMessage(messages.pan)}</strong></div>
+      <div>
+        <strong>{intl.formatMessage(messages.pan)}</strong>
+      </div>
       <div>{intl.formatMessage(messages.panInstructions1)}</div>
       <div>{intl.formatMessage(messages.panInstructions2)}</div>
-      <div><strong>{intl.formatMessage(messages.zoom)}</strong></div>
+      <div>
+        <strong>{intl.formatMessage(messages.zoom)}</strong>
+      </div>
       <div>{intl.formatMessage(messages.zoomInstructions1)}</div>
       <div>{intl.formatMessage(messages.zoomInstructions2)}</div>
-      <div><strong>{intl.formatMessage(messages.reset)}</strong></div>
+      <div>
+        <strong>{intl.formatMessage(messages.reset)}</strong>
+      </div>
       <div>{intl.formatMessage(messages.resetInstructions)}</div>
-      <div><strong>{intl.formatMessage(messages.help)}</strong></div>
+      <div>
+        <strong>{intl.formatMessage(messages.help)}</strong>
+      </div>
       <div>{intl.formatMessage(messages.helpInstructions)}</div>
       <div style={{ marginTop: '10px', fontSize: '12px', opacity: '0.8' }}>
         {intl.formatMessage(messages.focusNote)}
@@ -296,7 +350,7 @@ const STLViewer = ({
         camera.far = distance * 10;
         camera.updateProjectionMatrix();
         camera.lookAt(new THREE.Vector3(0, 0, 0));
-        
+
         // Store initial position and target for reset functionality
         setInitialPosition(new THREE.Vector3(0, 0, distance * 2));
         setInitialTarget(new THREE.Vector3(0, 0, 0));
@@ -304,9 +358,11 @@ const STLViewer = ({
         const { position, target } = savedCameraPosition;
         camera.position.set(position.x, position.y, position.z);
         camera.lookAt(new THREE.Vector3(target.x, target.y, target.z));
-        
+
         // Store saved position as initial for reset
-        setInitialPosition(new THREE.Vector3(position.x, position.y, position.z));
+        setInitialPosition(
+          new THREE.Vector3(position.x, position.y, position.z),
+        );
         setInitialTarget(new THREE.Vector3(target.x, target.y, target.z));
       }
     });
@@ -336,7 +392,7 @@ const STLViewer = ({
           }
         }}
       />
-      <KeyboardControls 
+      <KeyboardControls
         controlsRef={controlsRef}
         camera={camera}
         initialPosition={initialPosition}
@@ -360,7 +416,13 @@ const View = (props) => {
   useEffect(() => {
     if (file?.data) {
       setIsLoading(true);
-      const blob = new Blob([Buffer.from(file.data, 'base64')], {
+      // Convert base64 to Uint8Array using browser-native methods
+      const binaryString = atob(file.data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], {
         type: file['content-type'],
       });
       const url = URL.createObjectURL(blob);
@@ -395,11 +457,11 @@ const View = (props) => {
   if (fileExtension === 'stl') {
     return (
       <div className="container360image" style={{ position: 'relative' }}>
-        <HelpOverlay 
-          show={showHelp} 
-          onToggle={() => setShowHelp(prev => !prev)} 
+        <HelpOverlay
+          show={showHelp}
+          onToggle={() => setShowHelp((prev) => !prev)}
         />
-        <div 
+        <div
           style={{
             position: 'absolute',
             top: '10px',
@@ -409,7 +471,7 @@ const View = (props) => {
             borderRadius: '3px',
             padding: '5px 10px',
             color: 'white',
-            fontSize: '12px'
+            fontSize: '12px',
           }}
         >
           {intl.formatMessage(messages.helpHint)}
@@ -421,14 +483,17 @@ const View = (props) => {
           height="auto"
           linear
           tabIndex={0}
-          style={{ 
+          style={{
             outline: 'none',
-            border: 'none'
+            border: 'none',
           }}
           onCreated={({ gl }) => {
             gl.setSize(window.innerWidth, window.innerHeight);
             gl.forceContextRestore();
-            gl.domElement.setAttribute('aria-label', '3D Model Viewer - Click to focus, then use keyboard controls');
+            gl.domElement.setAttribute(
+              'aria-label',
+              '3D Model Viewer - Click to focus, then use keyboard controls',
+            );
             gl.domElement.setAttribute('role', 'application');
             gl.domElement.tabIndex = 0;
             gl.domElement.style.outline = 'none';
