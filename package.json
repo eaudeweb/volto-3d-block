@@ -23,8 +23,10 @@
     "@eeacms/volto-object-widget": "*",
     "@react-three/drei": "9.17.1",
     "@react-three/fiber": "8.0.27",
+    "lodash.debounce": "^4.0.8",
     "react-pannellum": "*",
-    "three": "0.125.0"
+    "three": "0.137.5",
+    "three-stdlib": "^2.36.0"
   },
   "devDependencies": {
     "@cypress/code-coverage": "^3.10.0",
